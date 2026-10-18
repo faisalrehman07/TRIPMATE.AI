@@ -1,15 +1,29 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, Suspense } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { Navbar } from "@/components/ui/Navbar";
 import { Footer } from "@/components/ui/Footer";
 import { Trip } from "@/lib/types/trip";
 import { TripStorage } from "@/lib/db/storage";
 import { formatINR } from "@/lib/utils";
-import { MapPin, Calendar, Users, ArrowRight, Plus, Trash2, ShieldCheck } from "lucide-react";
+import { TripWorkspaceClient } from "@/components/workspace/TripWorkspaceClient";
+import { MapPin, Calendar, Users, ArrowRight, Plus, Trash2, ShieldCheck, Sparkles } from "lucide-react";
 
-export default function SavedTripsPage() {
+function TripsContent() {
+  const searchParams = useSearchParams();
+  const tripId = searchParams?.get("id");
+
+  // If a specific trip id is requested, directly render the full Trip Workspace!
+  if (tripId) {
+    return <TripWorkspaceClient tripId={tripId} />;
+  }
+
+  return <SavedTripsList />;
+}
+
+function SavedTripsList() {
   const [trips, setTrips] = useState<Trip[]>([]);
 
   useEffect(() => {
@@ -67,7 +81,7 @@ export default function SavedTripsPage() {
             {trips.map((trip) => (
               <Link
                 key={trip.id}
-                href={`/trips/${trip.id}`}
+                href={`/trips?id=${trip.id}`}
                 className="group relative flex flex-col rounded-3xl border border-stone-200 dark:border-stone-800 bg-white dark:bg-stone-900/90 overflow-hidden shadow-sm hover:border-emerald-600 dark:hover:border-emerald-500 hover:shadow-md transition-all backdrop-blur-sm"
               >
                 {/* Image / Header bar */}
@@ -142,5 +156,19 @@ export default function SavedTripsPage() {
 
       <Footer />
     </div>
+  );
+}
+
+export default function SavedTripsPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen flex items-center justify-center bg-stone-50 dark:bg-stone-900">
+          <div className="h-8 w-8 rounded-full border-3 border-emerald-800 border-t-transparent animate-spin" />
+        </div>
+      }
+    >
+      <TripsContent />
+    </Suspense>
   );
 }

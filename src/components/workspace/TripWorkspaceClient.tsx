@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { Navbar } from "@/components/ui/Navbar";
 import { Footer } from "@/components/ui/Footer";
 import { Trip, HotelOffer, ExpenseRecord, GroupMember } from "@/lib/types/trip";
@@ -39,10 +39,19 @@ import {
   Share2,
 } from "lucide-react";
 
-export function TripWorkspaceClient() {
+interface TripWorkspaceClientProps {
+  tripId?: string;
+}
+
+export function TripWorkspaceClient({ tripId: propTripId }: TripWorkspaceClientProps = {}) {
   const params = useParams();
+  const searchParams = useSearchParams();
   const router = useRouter();
-  const tripId = typeof params?.id === "string" ? params.id : SAMPLE_COORG_TRIP.id;
+
+  const queryId = searchParams?.get("id");
+  const paramId = typeof params?.id === "string" ? params.id : undefined;
+  const activeStoredId = typeof window !== "undefined" ? TripStorage.getActiveTripId() : null;
+  const tripId = propTripId || queryId || paramId || activeStoredId || SAMPLE_COORG_TRIP.id;
 
   const [trip, setTrip] = useState<Trip>(SAMPLE_COORG_TRIP);
   const [activeTab, setActiveTab] = useState<
@@ -56,6 +65,11 @@ export function TripWorkspaceClient() {
     const loaded = TripStorage.getTripById(tripId);
     if (loaded) {
       setTrip(loaded);
+    } else {
+      const all = TripStorage.getAllTrips();
+      if (all.length > 0) {
+        setTrip(all[0]);
+      }
     }
   }, [tripId]);
 

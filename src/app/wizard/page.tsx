@@ -8,6 +8,7 @@ import { TripPreferences } from "@/lib/types/trip";
 import { TripStorage } from "@/lib/db/storage";
 import { TripGenerationService } from "@/lib/services/TripGenerationService";
 import { formatINR } from "@/lib/utils";
+import { TravelMotionBanner } from "@/components/ui/TravelMotionBanner";
 import {
   Compass,
   Sparkles,
@@ -67,8 +68,59 @@ export default function WizardPage() {
     dietary: ["NON_VEGETARIAN", "REGIONAL", "VEGETARIAN"],
     mustVisitPlaces: ["Mandalpatti Peak", "Abbey Falls"],
     avoidActivities: [],
+    departureTime: "08:30",
+    returnTime: "17:00",
     customNotes: "We are six friends travelling from Bengaluru for three days. Total budget is ₹30,000. Want adventure, scenic spots, good food and cozy resort.",
   });
+
+  const handleDateChange = (newStart: string, newEnd: string) => {
+    let days = preferences.days;
+    let nights = preferences.nights;
+
+    if (newStart && newEnd) {
+      const s = new Date(newStart);
+      const e = new Date(newEnd);
+      if (!isNaN(s.getTime()) && !isNaN(e.getTime())) {
+        const diffMs = e.getTime() - s.getTime();
+        const diffDays = Math.round(diffMs / (1000 * 60 * 60 * 24));
+        if (diffDays >= 0) {
+          nights = diffDays;
+          days = diffDays === 0 ? 1 : diffDays + 1;
+        } else {
+          newEnd = newStart;
+          nights = 0;
+          days = 1;
+        }
+      }
+    }
+
+    setPreferences((prev) => ({
+      ...prev,
+      startDate: newStart,
+      endDate: newEnd,
+      days,
+      nights,
+    }));
+  };
+
+  const handleAdjustDuration = (delta: number) => {
+    setPreferences((prev) => {
+      const newDays = Math.max(1, prev.days + delta);
+      const newNights = Math.max(0, newDays - 1);
+      const s = new Date(prev.startDate || "2026-10-24");
+      if (!isNaN(s.getTime())) {
+        const newEndDate = new Date(s);
+        newEndDate.setDate(newEndDate.getDate() + newNights);
+        return {
+          ...prev,
+          days: newDays,
+          nights: newNights,
+          endDate: newEndDate.toISOString().split("T")[0],
+        };
+      }
+      return { ...prev, days: newDays, nights: newNights };
+    });
+  };
 
   const handleUpdateFriendName = (index: number, newName: string) => {
     setPreferences((prev) => {
@@ -173,10 +225,10 @@ export default function WizardPage() {
       const trip = await TripGenerationService.generateTrip(preferences);
       TripStorage.saveTrip(trip);
       TripStorage.setActiveTripId(trip.id);
-      router.push(`/trips/${trip.id}`);
+      router.push(`/trips?id=${trip.id}`);
     } catch (err) {
       console.error(err);
-      router.push("/trips/trip-coorg-demo-001");
+      router.push("/trips?id=trip-coorg-demo-001");
     }
   };
 
@@ -207,6 +259,27 @@ export default function WizardPage() {
               style={{ width: `${(currentStep / 8) * 100}%` }}
             />
           </div>
+        </div>
+
+        {/* Travel Vibe Motion Banner in Wizard */}
+        <div className="mb-8">
+          <TravelMotionBanner
+            onSelectVibe={(vibe) => {
+              if (vibe.includes("Mountain")) {
+                setPreferences((p) => ({
+                  ...p,
+                  destinationCity: "Coorg (Kodagu)",
+                  vibes: ["Misty Mountains", "4x4 ATV & Jeep Safari"],
+                }));
+              } else if (vibe.includes("Beach")) {
+                setPreferences((p) => ({
+                  ...p,
+                  destinationCity: "Gokarna Coast",
+                  vibes: ["Coastal Beaches", "Beachside Shacks & Cliffs"],
+                }));
+              }
+            }}
+          />
         </div>
 
         {/* Wizard Card Container */}
@@ -254,7 +327,7 @@ export default function WizardPage() {
                   <input
                     type="date"
                     value={preferences.startDate}
-                    onChange={(e) => setPreferences({ ...preferences, startDate: e.target.value })}
+                    onChange={(e) => handleDateChange(e.target.value, preferences.endDate)}
                     className="mt-1.5 w-full rounded-xl border border-stone-200 dark:border-stone-700 bg-stone-50 dark:bg-stone-800 p-3 text-stone-900 dark:text-white outline-none focus:border-emerald-600"
                   />
                 </div>
@@ -264,12 +337,86 @@ export default function WizardPage() {
                   <input
                     type="date"
                     value={preferences.endDate}
-                    onChange={(e) => setPreferences({ ...preferences, endDate: e.target.value })}
+                    onChange={(e) => handleDateChange(preferences.startDate, e.target.value)}
                     className="mt-1.5 w-full rounded-xl border border-stone-200 dark:border-stone-700 bg-stone-50 dark:bg-stone-800 p-3 text-stone-900 dark:text-white outline-none focus:border-emerald-600"
                   />
                 </div>
 
+                {/* Live Calculated Trip Duration with adjustment steppers */}
+                <div className="sm:col-span-2 rounded-2xl border border-emerald-500/30 bg-emerald-50/60 dark:bg-emerald-950/40 p-4">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div>
+                      <div className="text-[11px] font-bold uppercase tracking-wider text-emerald-800 dark:text-emerald-400 flex items-center gap-1.5">
+                        <Sparkles className="h-3.5 w-3.5 text-emerald-600" />
+                        <span>Calculated Dynamic Duration</span>
+                      </div>
+                      <div className="text-xl font-bold font-serif text-stone-900 dark:text-white mt-0.5">
+                        {preferences.days} Days • {preferences.nights} Nights
+                      </div>
+                      <p className="text-[11px] text-stone-600 dark:text-stone-400">
+                        From {preferences.startDate} to {preferences.endDate} ({preferences.nights} nights stay)
+                      </p>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-stone-500 dark:text-stone-400 font-medium">Fine-tune duration:</span>
+                      <button
+                        type="button"
+                        onClick={() => handleAdjustDuration(-1)}
+                        className="h-8 w-8 rounded-lg border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-800 text-stone-800 dark:text-stone-200 font-bold hover:bg-stone-100 dark:hover:bg-stone-700 text-sm shadow-xs active:scale-95 transition-all"
+                        title="Decrease 1 day"
+                      >
+                        -
+                      </button>
+                      <span className="text-xs font-bold px-1.5 py-0.5 rounded-md bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700">
+                        {preferences.days} Days
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => handleAdjustDuration(1)}
+                        className="h-8 w-8 rounded-lg border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-800 text-stone-800 dark:text-stone-200 font-bold hover:bg-stone-100 dark:hover:bg-stone-700 text-sm shadow-xs active:scale-95 transition-all"
+                        title="Add 1 day"
+                      >
+                        +
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Departure Schedule Selection */}
                 <div>
+                  <label className="font-semibold text-stone-700 dark:text-stone-300 flex items-center gap-1.5">
+                    <span>When will you depart on Day 1?</span>
+                  </label>
+                  <select
+                    value={preferences.departureTime || "08:30"}
+                    onChange={(e) => setPreferences({ ...preferences, departureTime: e.target.value })}
+                    className="mt-1.5 w-full rounded-xl border border-stone-200 dark:border-stone-700 bg-stone-50 dark:bg-stone-800 p-3 text-stone-900 dark:text-white outline-none focus:border-emerald-600 font-medium"
+                  >
+                    <option value="06:00">🌅 Early Morning (06:00 AM) — Beat Highway Tolls & Highway Breakfast</option>
+                    <option value="08:30">☀️ Morning (08:30 AM) — Standard Scenic Start & Lunch Arrival</option>
+                    <option value="13:00">🌤️ Afternoon (01:00 PM) — Post-Lunch Roadtrip & Sunset Check-in</option>
+                    <option value="18:00">🌙 Evening (06:00 PM) — Night Drive & Stargazing Check-in</option>
+                  </select>
+                </div>
+
+                {/* Return Schedule Selection */}
+                <div>
+                  <label className="font-semibold text-stone-700 dark:text-stone-300 flex items-center gap-1.5">
+                    <span>Return departure on final day?</span>
+                  </label>
+                  <select
+                    value={preferences.returnTime || "17:00"}
+                    onChange={(e) => setPreferences({ ...preferences, returnTime: e.target.value })}
+                    className="mt-1.5 w-full rounded-xl border border-stone-200 dark:border-stone-700 bg-stone-50 dark:bg-stone-800 p-3 text-stone-900 dark:text-white outline-none focus:border-emerald-600 font-medium"
+                  >
+                    <option value="13:00">☀️ Afternoon (01:00 PM) — Check-out & Midday Highway Return</option>
+                    <option value="17:00">🌅 Evening (05:00 PM) — Full Day Sightseeing & Sunset Return</option>
+                    <option value="20:00">🌙 Night (08:00 PM) — Farewell Dinner & Late Evening Drive</option>
+                  </select>
+                </div>
+
+                <div className="sm:col-span-2">
                   <label className="font-semibold text-stone-700 dark:text-stone-300">Total Group Budget (₹ INR)</label>
                   <input
                     type="number"
@@ -285,18 +432,6 @@ export default function WizardPage() {
                   />
                   <div className="mt-1 text-[11px] text-stone-500 dark:text-stone-400">
                     ≈ {formatINR(preferences.totalBudget / preferences.groupSize)} per person for {preferences.groupSize} travelers
-                  </div>
-                </div>
-
-                <div>
-                  <label className="font-semibold text-stone-700 dark:text-stone-300">Trip Duration</label>
-                  <div className="mt-1.5 grid grid-cols-2 gap-2">
-                    <div className="rounded-xl border border-stone-200 dark:border-stone-700 bg-stone-50 dark:bg-stone-800 p-3 text-center">
-                      <div className="font-bold text-stone-900 dark:text-white">{preferences.days} Days</div>
-                    </div>
-                    <div className="rounded-xl border border-stone-200 dark:border-stone-700 bg-stone-50 dark:bg-stone-800 p-3 text-center">
-                      <div className="font-bold text-stone-900 dark:text-white">{preferences.nights} Nights</div>
-                    </div>
                   </div>
                 </div>
               </div>
@@ -755,7 +890,7 @@ export default function WizardPage() {
               </div>
 
               {/* Preference Summary Matrix */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 rounded-2xl border border-stone-200 dark:border-stone-700 bg-stone-50 dark:bg-stone-800 p-4 text-xs">
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 rounded-2xl border border-stone-200 dark:border-stone-700 bg-stone-50 dark:bg-stone-800 p-4 text-xs">
                 <div>
                   <span className="text-[10px] text-stone-400 uppercase font-semibold">Route</span>
                   <div className="font-bold text-stone-900 dark:text-white">
@@ -763,22 +898,32 @@ export default function WizardPage() {
                   </div>
                 </div>
                 <div>
-                  <span className="text-[10px] text-stone-400 uppercase font-semibold">Dates</span>
+                  <span className="text-[10px] text-stone-400 uppercase font-semibold">Dates & Duration</span>
                   <div className="font-bold text-stone-900 dark:text-white">
                     {preferences.days} Days ({preferences.nights} Nights)
                   </div>
+                  <div className="text-[10px] text-stone-500">{preferences.startDate} to {preferences.endDate}</div>
                 </div>
                 <div>
-                  <span className="text-[10px] text-stone-400 uppercase font-semibold">Group Size</span>
+                  <span className="text-[10px] text-stone-400 uppercase font-semibold">Departure & Return</span>
                   <div className="font-bold text-stone-900 dark:text-white">
-                    {preferences.groupSize} Travelers ({preferences.groupProfile})
+                    Depart: {preferences.departureTime || "08:30"}
                   </div>
+                  <div className="text-[10px] text-stone-500">Return: {preferences.returnTime || "17:00"}</div>
+                </div>
+                <div>
+                  <span className="text-[10px] text-stone-400 uppercase font-semibold">Group Squad</span>
+                  <div className="font-bold text-stone-900 dark:text-white">
+                    {preferences.groupSize} Friends
+                  </div>
+                  <div className="text-[10px] text-stone-500 truncate">{(preferences.friendNames || []).slice(0, 3).join(", ")}...</div>
                 </div>
                 <div>
                   <span className="text-[10px] text-stone-400 uppercase font-semibold">Total Budget</span>
                   <div className="font-bold text-emerald-700 dark:text-emerald-400 font-serif text-sm">
                     {formatINR(preferences.totalBudget)}
                   </div>
+                  <div className="text-[10px] text-emerald-600 font-medium">≈ {formatINR(preferences.totalBudget / preferences.groupSize)}/friend</div>
                 </div>
               </div>
 

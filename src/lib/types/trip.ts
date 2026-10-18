@@ -70,6 +70,8 @@ export interface TripPreferences {
   friendNames?: string[];
   activities?: string[];
   travelStyle?: string;
+  departureTime?: string; // e.g. "06:00" or "EARLY_MORNING"
+  returnTime?: string; // e.g. "17:00" or "EVENING"
   customNotes?: string;
 }
 

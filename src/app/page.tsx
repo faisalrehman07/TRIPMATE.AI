@@ -8,6 +8,7 @@ import { Footer } from "@/components/ui/Footer";
 import { formatINR } from "@/lib/utils";
 import { SAMPLE_DESTINATIONS, SAMPLE_COORG_TRIP } from "@/lib/db/mockData";
 import { TripStorage } from "@/lib/db/storage";
+import { TravelMotionBanner } from "@/components/ui/TravelMotionBanner";
 import {
   Compass,
   Sparkles,
@@ -172,7 +173,7 @@ export default function LandingPage() {
   const handleLaunchTrip = () => {
     TripStorage.saveTrip(SAMPLE_COORG_TRIP);
     TripStorage.setActiveTripId(SAMPLE_COORG_TRIP.id);
-    router.push(`/trips/${SAMPLE_COORG_TRIP.id}`);
+    router.push(`/trips?id=${SAMPLE_COORG_TRIP.id}`);
   };
 
   return (
@@ -207,8 +208,20 @@ export default function LandingPage() {
               </p>
             </div>
 
+            {/* Travel Journey in Motion Banner (Trains, Mountains, Beaches & Roadtrips) */}
+            <div className="mt-8 max-w-5xl mx-auto">
+              <TravelMotionBanner
+                onSelectVibe={(vibeName) => {
+                  if (vibeName.includes("Mountain")) setSelectedVibeCategory("MOUNTAINS");
+                  else if (vibeName.includes("Beach")) setSelectedVibeCategory("BEACHES");
+                  else if (vibeName.includes("Rail") || vibeName.includes("Transit")) setSelectedVibeCategory("MOUNTAINS");
+                  else if (vibeName.includes("Jeep") || vibeName.includes("Adventure")) setSelectedVibeCategory("ADVENTURES");
+                }}
+              />
+            </div>
+
             {/* INTERACTIVE VIBE & ACTIVITY SELECTOR HERO CARD */}
-            <div className="mt-12 max-w-5xl mx-auto rounded-3xl border border-stone-200/90 dark:border-stone-800/90 bg-white/95 dark:bg-stone-900/90 p-6 sm:p-8 shadow-2xl backdrop-blur-xl travel-glow">
+            <div className="mt-10 max-w-5xl mx-auto rounded-3xl border border-stone-200/90 dark:border-stone-800/90 bg-white/95 dark:bg-stone-900/90 p-6 sm:p-8 shadow-2xl backdrop-blur-xl travel-glow">
               <div className="border-b border-stone-200 dark:border-stone-800 pb-5">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                   <div>

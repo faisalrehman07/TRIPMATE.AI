@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
+    "export": "next build && node scripts/prepare-export.js",
     "start": "next start",
     "lint": "eslint",
     "test": "npx tsx src/lib/tests/runTests.ts"
