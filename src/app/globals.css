@@ -1,26 +1,157 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
+@layer base {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --background: #fbf9f5;
+    --foreground: #1c1917;
+    --card: #ffffff;
+    --card-foreground: #1c1917;
+    --primary: #064e3b;
+    --primary-foreground: #ffffff;
+    --secondary: #f3ece1;
+    --secondary-foreground: #1c1917;
+    --muted: #f4ede4;
+    --muted-foreground: #78716c;
+    --accent: #d97706;
+    --accent-foreground: #ffffff;
+    --destructive: #dc2626;
+    --destructive-foreground: #ffffff;
+    --border: #e7e0d5;
+    --input: #e7e0d5;
+    --ring: #064e3b;
+    --radius: 1rem;
+  }
+
+  .dark {
+    --background: #09120e;
+    --foreground: #f4f5f4;
+    --card: #0f1d17;
+    --card-foreground: #f4f5f4;
+    --primary: #10b981;
+    --primary-foreground: #09120e;
+    --secondary: #172a22;
+    --secondary-foreground: #f4f5f4;
+    --muted: #172a22;
+    --muted-foreground: #9ca3af;
+    --accent: #f59e0b;
+    --accent-foreground: #09120e;
+    --destructive: #ef4444;
+    --destructive-foreground: #ffffff;
+    --border: #1f382e;
+    --input: #1f382e;
+    --ring: #10b981;
   }
 }
 
 body {
-  background: var(--background);
+  background-color: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  overflow-x: hidden;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* Custom travel gradient utilities */
+.travel-gradient-emerald {
+  background: linear-gradient(135deg, #064e3b 0%, #0f766e 50%, #047857 100%);
+}
+
+.travel-gradient-sunset {
+  background: linear-gradient(135deg, #d97706 0%, #ea580c 50%, #b91c1c 100%);
+}
+
+.travel-gradient-ocean {
+  background: linear-gradient(135deg, #0284c7 0%, #0d9488 50%, #059669 100%);
+}
+
+.travel-gradient-card {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.9) 0%, rgba(248, 246, 240, 0.95) 100%);
+}
+
+.dark .travel-gradient-card {
+  background: linear-gradient(180deg, rgba(17, 33, 26, 0.95) 0%, rgba(10, 20, 16, 0.98) 100%);
+}
+
+.travel-glow {
+  box-shadow: 0 0 30px -5px rgba(16, 185, 129, 0.15);
+}
+
+.dark .travel-glow {
+  box-shadow: 0 0 35px -5px rgba(16, 185, 129, 0.25);
+}
+
+/* Custom scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 9999px;
+}
+.dark ::-webkit-scrollbar-thumb {
+  background: #1f382e;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* Leaflet Map overrides for smooth styling */
+.leaflet-container {
+  width: 100%;
+  height: 100%;
+  border-radius: 1rem;
+  z-index: 10 !important;
+  font-family: inherit;
+}
+
+.leaflet-popup-content-wrapper {
+  background: #ffffff !important;
+  border-radius: 1rem !important;
+  box-shadow: 0 15px 30px -5px rgba(0, 0, 0, 0.2) !important;
+  border: 1px solid #e7e0d5;
+}
+
+.dark .leaflet-popup-content-wrapper {
+  background: #0f1d17 !important;
+  color: #f4f5f4 !important;
+  border: 1px solid #1f382e !important;
+}
+
+.leaflet-popup-content {
+  margin: 12px 16px !important;
+  line-height: 1.4 !important;
+}
+
+/* Animations & Motion */
+@keyframes floatSlow {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-8px); }
+}
+
+@keyframes pulseGlow {
+  0%, 100% { opacity: 0.8; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.04); }
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.animate-float {
+  animation: floatSlow 4s ease-in-out infinite;
+}
+
+.animate-pulse-glow {
+  animation: pulseGlow 3s ease-in-out infinite;
+}
+
+.animate-shimmer {
+  background: linear-gradient(90deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.15) 50%, rgba(255,255,255,0) 100%);
+  background-size: 200% 100%;
+  animation: shimmer 2.5s infinite;
 }
