@@ -1,6 +1,9 @@
 import type { NextConfig } from "next";
 
-const isGithub = process.env.GITHUB_PAGES === "true" || process.env.GITHUB_ACTIONS === "true";
+const isGithub =
+  process.env.GITHUB_PAGES?.trim() === "true" ||
+  process.env.GITHUB_ACTIONS === "true" ||
+  process.env.NODE_ENV === "production";
 const basePath = isGithub ? "/TRIPMATE.AI" : (process.env.NEXT_PUBLIC_BASE_PATH || "");
 
 const nextConfig: NextConfig = {
