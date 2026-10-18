@@ -68,6 +68,8 @@ export interface TripPreferences {
   mustVisitPlaces: string[];
   avoidActivities: string[];
   friendNames?: string[];
+  activities?: string[];
+  travelStyle?: string;
   customNotes?: string;
 }
 

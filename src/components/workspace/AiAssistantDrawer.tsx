@@ -3,6 +3,8 @@
 import React, { useState } from "react";
 import { Trip } from "@/lib/types/trip";
 import { formatINR } from "@/lib/utils";
+import { ReplanningService } from "@/lib/services/ReplanningService";
+import { HybridRetrievalService } from "@/lib/services/HybridRetrievalService";
 import { Sparkles, Send, X, Bot, User, Check, AlertCircle, ArrowRight, CornerDownRight } from "lucide-react";
 
 interface AiAssistantDrawerProps {
@@ -56,40 +58,64 @@ export function AiAssistantDrawer({
     setIsTyping(true);
 
     try {
-      const res = await fetch("/api/chat", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: text, trip }),
-      });
+      const lower = text.toLowerCase();
+      const isActionable =
+        lower.includes("cheaper") ||
+        lower.includes("hotel") ||
+        lower.includes("resort") ||
+        lower.includes("remove") ||
+        lower.includes("waterfall") ||
+        lower.includes("rain") ||
+        lower.includes("indoor") ||
+        lower.includes("cut budget");
 
-      const data = await res.json();
-
-      if (data.success) {
-        if (data.updatedTrip) {
-          onUpdateTrip(data.updatedTrip);
+      if (isActionable) {
+        const replanResult = await ReplanningService.handleNaturalLanguageCommand(trip, text);
+        if (replanResult.updatedTrip) {
+          onUpdateTrip(replanResult.updatedTrip);
         }
 
         const aiMsg: ChatMessage = {
           id: `msg-${Date.now() + 1}`,
           sender: "AI",
-          text: data.reply,
+          text: replanResult.explanation,
           timestamp: "Just now",
-          actionTaken: data.actionTaken,
-          costDelta: data.costDelta,
+          actionTaken: replanResult.actionTaken,
+          costDelta: replanResult.costDelta,
         };
-
         setMessages((prev) => [...prev, aiMsg]);
-      } else {
-        setMessages((prev) => [
-          ...prev,
-          {
-            id: `msg-${Date.now() + 1}`,
-            sender: "AI",
-            text: "I encountered a minor issue processing that. Please try rephrasing your request.",
-            timestamp: "Just now",
-          },
-        ]);
+        return;
       }
+
+      // Contextual travel query using RAG hybrid search
+      const retrieved = HybridRetrievalService.retrieve({
+        query: text,
+        destination: trip.destination,
+        topK: 2,
+      });
+
+      if (retrieved.length > 0) {
+        const topEvidence = retrieved[0];
+        const reply = `According to verified travel data from **${topEvidence.sourceName}**:\n\n${topEvidence.content}\n\n*Source citation:* [Official Guide](${topEvidence.sourceUrl}) (Verified ${new Date(topEvidence.verifiedAt).toLocaleDateString("en-IN")}).`;
+        const aiMsg: ChatMessage = {
+          id: `msg-${Date.now() + 1}`,
+          sender: "AI",
+          text: reply,
+          timestamp: "Just now",
+        };
+        setMessages((prev) => [...prev, aiMsg]);
+        return;
+      }
+
+      // General helpful response grounded in active trip
+      const reply = `Your trip to **${trip.destination}** is currently scheduled for **${trip.days} days** with **${trip.preferences.groupSize} travelers**. Total estimated budget is **₹${trip.budget.totalTripCost.toLocaleString("en-IN")}** (limit: ₹${trip.budget.budgetLimit.toLocaleString("en-IN")}). Let me know if you would like to swap hotels, find cheaper alternatives, remove an activity, or prepare for weather changes!`;
+      const aiMsg: ChatMessage = {
+        id: `msg-${Date.now() + 1}`,
+        sender: "AI",
+        text: reply,
+        timestamp: "Just now",
+      };
+      setMessages((prev) => [...prev, aiMsg]);
     } catch (err) {
       console.error(err);
       setMessages((prev) => [
@@ -97,7 +123,7 @@ export function AiAssistantDrawer({
         {
           id: `msg-${Date.now() + 1}`,
           sender: "AI",
-          text: "Network glitch connecting to travel assistant. Please try again.",
+          text: "I encountered a minor issue processing that. Please try rephrasing your request.",
           timestamp: "Just now",
         },
       ]);

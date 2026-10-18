@@ -6,6 +6,7 @@ import { Navbar } from "@/components/ui/Navbar";
 import { Footer } from "@/components/ui/Footer";
 import { TripPreferences } from "@/lib/types/trip";
 import { TripStorage } from "@/lib/db/storage";
+import { TripGenerationService } from "@/lib/services/TripGenerationService";
 import { formatINR } from "@/lib/utils";
 import {
   Compass,
@@ -169,20 +170,10 @@ export default function WizardPage() {
     await new Promise((r) => setTimeout(r, 700));
 
     try {
-      const res = await fetch("/api/generate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(preferences),
-      });
-
-      const data = await res.json();
-      if (data.success && data.trip) {
-        TripStorage.saveTrip(data.trip);
-        TripStorage.setActiveTripId(data.trip.id);
-        router.push(`/trips/${data.trip.id}`);
-      } else {
-        router.push("/trips/trip-coorg-demo-001");
-      }
+      const trip = await TripGenerationService.generateTrip(preferences);
+      TripStorage.saveTrip(trip);
+      TripStorage.setActiveTripId(trip.id);
+      router.push(`/trips/${trip.id}`);
     } catch (err) {
       console.error(err);
       router.push("/trips/trip-coorg-demo-001");
